@@ -1048,9 +1048,18 @@ void loopClosureThread()
     while (rclcpp::ok() && startFlag)
     {
         // 执行完一次就必须sleep一段时间,否则该线程的cpu占用会非常高
-        rate.sleep();
-        performLoopClosure();   // 回环检测函数
-        visualizeLoopClosure(); // rviz展示回环边
+        try
+        {
+            rate.sleep();
+            if (!rclcpp::ok() || !startFlag)
+                break;
+            performLoopClosure();   // 回环检测函数
+            visualizeLoopClosure(); // rviz展示回环边
+        }
+        catch (const rclcpp::exceptions::RCLError &)
+        {
+            break;
+        }
     }
 }
 
@@ -1926,7 +1935,7 @@ void h_share_model(state_ikfom &s, esekfom::dyn_share_datastruct<double> &ekfom_
             // world系下从ikdtree已构造的地图上找5个最近点用于平面拟合
             ikdtree.Nearest_Search(point_world, NUM_MATCH_POINTS, points_near, pointSearchSqDis);
             // 如果最近邻的点数小于NUM_MATCH_POINTS或者最近邻的点到特征点的距离大于5m，则认为该点不是有效点
-            point_selected_surf[i] = points_near.size() < NUM_MATCH_POINTS ? false : pointSearchSqDis[NUM_MATCH_POINTS - 1] > 5 ? false
+            point_selected_surf[i] = points_near.size() < NUM_MATCH_POINTS ? false : pointSearchSqDis[NUM_MATCH_POINTS - 1] > 25 ? false
                                                                                                                                 : true;
         }
 
@@ -1945,7 +1954,7 @@ void h_share_model(state_ikfom &s, esekfom::dyn_share_datastruct<double> &ekfom_
             float s = 1 - 0.9 * fabs(pd2) / sqrt(p_body.norm());
 
             // 如果残差大于阈值，则认为该点是有效点
-            if (s > 0.9)
+            if (s > 0.5)
             {
                 point_selected_surf[i] = true;   // 再次回复为有效点
                 normvec->points[i].x = pabcd(0); // 将法向量存储至normvec
@@ -2151,6 +2160,11 @@ int main(int argc, char **argv)
     memset(point_selected_surf, true, sizeof(point_selected_surf));
     // 将数组res_last内元素的值全部设置为-1000.0f,数组res_last用于平面拟合中
     memset(res_last, -1000.0f, sizeof(res_last));
+    mappingSurfLeafSize = std::max(mappingSurfLeafSize, 0.1f);
+    filter_size_map_min = std::max(filter_size_map_min, 0.1);
+    globalMapVisualizationPoseDensity = std::max(globalMapVisualizationPoseDensity, 0.1f);
+    globalMapVisualizationLeafSize = std::max(globalMapVisualizationLeafSize, 0.1f);
+
     // VoxelGrid滤波器参数,即进行滤波时的创建的体素边长为mappingSurfLeafSize
     downSizeFilterSurf.setLeafSize(mappingSurfLeafSize, mappingSurfLeafSize, mappingSurfLeafSize);
     // VoxelGrid滤波器参数,即进行滤波时的创建的体素边长为filter_size_map_min
@@ -2257,9 +2271,6 @@ int main(int argc, char **argv)
 
     cout << "rostopic is ok" << endl;
 
-    // 中断处理函数,如果有中断信号(比如Ctrl+C),则执行第二个参数里面的SigHandle函数
-    signal(SIGINT, SigHandle);
-
     // ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug); 
 
     rclcpp::Rate rate(5000);
@@ -2269,7 +2280,16 @@ int main(int argc, char **argv)
         // 如果有中断产生,则结束主循环
         if (flg_exit)
             break;
-        rclcpp::spin_some(nh); // ROS消息回调处理函数
+        try
+        {
+            if (!rclcpp::ok())
+                break;
+            rclcpp::spin_some(nh); // ROS消息回调处理函数
+        }
+        catch (const rclcpp::exceptions::RCLError &)
+        {
+            break;
+        }
 
         // 将当前lidar数据及lidar扫描时间内对应的imu数据从缓存队列中取出,进行时间对齐,并保存到Measures中
         if (sync_packages(Measures))
@@ -2359,7 +2379,26 @@ int main(int argc, char **argv)
             // 在拿到eskf前馈结果后,动态调整局部地图
             lasermap_fov_segment(); // 根据L在world系下的位置,重新确定局部地图的包围盒角点,移除远端的点
 
-            downSizeFilterSurf.setInputCloud(feats_undistort); // 获得去畸变后的点云数据
+            pcl::PointCloud<PointType>::Ptr feats_undistort_valid(new pcl::PointCloud<PointType>());
+            feats_undistort_valid->reserve(feats_undistort->size());
+            constexpr float kMaxVoxelRange2 = 100000.0f * 100000.0f;
+            for (const auto &pt : feats_undistort->points)
+            {
+                if (!std::isfinite(pt.x) || !std::isfinite(pt.y) || !std::isfinite(pt.z))
+                    continue;
+                const float range2 = pt.x * pt.x + pt.y * pt.y + pt.z * pt.z;
+                if (range2 > kMaxVoxelRange2)
+                    continue;
+                feats_undistort_valid->push_back(pt);
+            }
+
+            if (feats_undistort_valid->empty())
+            {
+                RCLCPP_WARN(node->get_logger(), "No valid points after sanitizing, skip this scan!\n");
+                continue;
+            }
+
+            downSizeFilterSurf.setInputCloud(feats_undistort_valid); // 获得去畸变后的点云数据
             downSizeFilterSurf.filter(*feats_down_body);       // 滤波降采样后的点云数据
             t1 = omp_get_wtime();                              // 记录时间
             feats_down_size = feats_down_body->points.size();  // 当前帧降采样后点数
@@ -2496,11 +2535,24 @@ int main(int argc, char **argv)
         }
 
         status = rclcpp::ok();
-        rate.sleep();
+        if (!status)
+            break;
+        try
+        {
+            rate.sleep();
+        }
+        catch (const rclcpp::exceptions::RCLError &)
+        {
+            break;
+        }
     }
 
     fout_out.close();
     fout_pre.close();
+
+    startFlag = false;
+    if (loopthread.joinable())
+        loopthread.join();
 
     /**************** data saver runs when programe is closing ****************/
     std::cout << "**************** data saver runs when programe is closing ****************" << std::endl;
@@ -2508,7 +2560,6 @@ int main(int argc, char **argv)
     if(! ((surfCloudKeyFrames.size() == cloudKeyPoses3D->points.size()) && (cloudKeyPoses3D->points.size() == cloudKeyPoses6D->points.size()))){
         std::cout << surfCloudKeyFrames.size() << " " << cloudKeyPoses3D->points.size() << " " << cloudKeyPoses6D->points.size() << std::endl;
         std::cout << " the condition --surfCloudKeyFrames.size() == cloudKeyPoses3D->points.size() == cloudKeyPoses6D->points.size()-- is not satisfied" << std::endl;
-        rclcpp::shutdown();
     }
     else{
         std::cout << "the num of total keyframe is " << surfCloudKeyFrames.size() << std::endl;
@@ -2616,8 +2667,37 @@ int main(int argc, char **argv)
 
     std::cout << "**************** data saver is done ****************" << std::endl;
 
-    startFlag = false;
-    loopthread.join(); // 分离线程
+    // 显式释放ROS实体，避免在rclcpp::shutdown之后析构publisher/subscription导致rmw异常
+    sub_image.reset();
+    sub_imu.reset();
+    sub_pcl.reset();
+    sub_pcl_livox.reset();
+
+    pubLaserCloudFull.reset();
+    pubLaserCloudColor.reset();
+    pubLaserCloudFull_body.reset();
+    pubLaserCloudEffect.reset();
+    pubLaserCloudMap.reset();
+    pubOdomAftMapped.reset();
+    pubPath.reset();
+    pubPathIMU.reset();
+    pubPathUpdate.reset();
+
+    pubLaserCloudSurround.reset();
+    pubOptimizedGlobalMap.reset();
+    pubLidarPCL.reset();
+    pubHistoryKeyFrames.reset();
+    pubIcpKeyFrames.reset();
+    pubLoopConstraintEdge.reset();
+    pubRecentKeyFrames.reset();
+    pubRecentKeyFrame.reset();
+    pubCloudRegisteredRaw.reset();
+
+    tf_broadcaster.reset();
+    nh.reset();
+    node.reset();
+
+    rclcpp::shutdown();
 
     return 0;
 }

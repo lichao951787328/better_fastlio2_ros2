@@ -293,7 +293,7 @@ void ImuProcess::UndistortPcl(const MeasureGroup &meas, esekfom::esekf<state_ikf
     }
     else
     {
-      dt = tail->header.stamp.sec + tail->header.stamp.nanosec * 1e-9 - head->header.stamp.sec + head->header.stamp.nanosec * 1e-9; // 相邻imu时刻时间差
+      dt = (tail->header.stamp.sec + tail->header.stamp.nanosec * 1e-9) - (head->header.stamp.sec + head->header.stamp.nanosec * 1e-9); // 相邻imu时刻时间差
     }
 
     // 值传入

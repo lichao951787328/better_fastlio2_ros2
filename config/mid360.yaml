@@ -20,9 +20,9 @@ laserMapping:
             lidar_type: 1
             livox_type: 1
             scan_line: 4
-            blind: 0.5
-            feature_enabled: 0
-            point_filter_num: 3
+            blind: 0.1
+            feature_extract_enable: false
+            point_filter_num: 1
             scan_rate: 10
             time_unit: 1
 
@@ -43,9 +43,9 @@ laserMapping:
             b_gyr_cov: 0.0001
             fov_degree: 360.0
             det_range: 100.0
-            cube_len: 1000.0
+            cube_len: 400.0
             extrinsic_est_en: true
-            mappingSurfLeafSize: 0.2
+            mappingSurfLeafSize: 0.5
             keyframeAddingDistThreshold: 1.0
             keyframeAddingAngleThreshold: 0.2
             extrinsic_T: [ 0.0, 0.0, 0.0 ]
@@ -57,7 +57,7 @@ laserMapping:
             max_iteration: 4
             recontructKdTree: true
             kd_step: 40
-            filter_size_map_min: 0.2
+            filter_size_map_min: 0.5
 
         loop:
             loopClosureEnableFlag: false
@@ -82,6 +82,6 @@ laserMapping:
 
         visualization:
             globalMapVisualizationSearchRadius: 10.0
-            globalMapVisualizationPoseDensity: 1.0
-            globalMapVisualizationLeafSize: 0.2
-            visulize_IkdtreeMap: true
+            globalMapVisualizationPoseDensity: 5.0
+            globalMapVisualizationLeafSize: 2.0
+            visulize_IkdtreeMap: false

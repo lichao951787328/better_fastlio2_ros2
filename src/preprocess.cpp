@@ -123,6 +123,7 @@ void Preprocess::livox_handler(const livox_ros_driver2::msg::CustomMsg::SharedPt
     pl_buff[i].reserve(plsize); // 预分配每一个scan保存的点数
   }
   uint valid_num = 0; // 有效的点数
+  constexpr double kMaxValidRange2 = 100000.0 * 100000.0;
 
   // 特征提取
   if (feature_enabled)
@@ -130,19 +131,30 @@ void Preprocess::livox_handler(const livox_ros_driver2::msg::CustomMsg::SharedPt
     // 按照line划分点云
     for (uint i = 1; i < plsize; i++)
     {
-      if ((msg->points[i].line < N_SCANS) && ((msg->points[i].tag & 0x30) == 0x10 || (msg->points[i].tag & 0x30) == 0x00))
+      const auto &pt = msg->points[i];
+      if (!std::isfinite(pt.x) || !std::isfinite(pt.y) || !std::isfinite(pt.z))
       {
-        pl_full[i].x = msg->points[i].x;
-        pl_full[i].y = msg->points[i].y;
-        pl_full[i].z = msg->points[i].z;
-        pl_full[i].intensity = msg->points[i].reflectivity;
-        pl_full[i].curvature = msg->points[i].offset_time / float(1000000); // use curvature as time of each laser points
+        continue;
+      }
+      const double range2 = pt.x * pt.x + pt.y * pt.y + pt.z * pt.z;
+      if (range2 < (blind * blind) || range2 > kMaxValidRange2)
+      {
+        continue;
+      }
+
+      if ((pt.line < N_SCANS) && ((pt.tag & 0x30) == 0x10 || (pt.tag & 0x30) == 0x00))
+      {
+        pl_full[i].x = pt.x;
+        pl_full[i].y = pt.y;
+        pl_full[i].z = pt.z;
+        pl_full[i].intensity = pt.reflectivity;
+        pl_full[i].curvature = pt.offset_time / float(1000000); // use curvature as time of each laser points
 
         bool is_new = false;
         // 与前一点间距太小则忽略该点，间距太小不利于特征提取
         if ((abs(pl_full[i].x - pl_full[i - 1].x) > 1e-7) || (abs(pl_full[i].y - pl_full[i - 1].y) > 1e-7) || (abs(pl_full[i].z - pl_full[i - 1].z) > 1e-7))
         {
-          pl_buff[msg->points[i].line].push_back(pl_full[i]);
+          pl_buff[pt.line].push_back(pl_full[i]);
         }
       }
     }
@@ -180,21 +192,35 @@ void Preprocess::livox_handler(const livox_ros_driver2::msg::CustomMsg::SharedPt
     // 不进行特征处理,分别对每个点进行处理
     for (uint i = 1; i < plsize; i++)
     {
+      const auto &pt = msg->points[i];
+      if (!std::isfinite(pt.x) || !std::isfinite(pt.y) || !std::isfinite(pt.z))
+      {
+        continue;
+      }
+      const double range2 = pt.x * pt.x + pt.y * pt.y + pt.z * pt.z;
+      if (range2 < (blind * blind) || range2 > kMaxValidRange2)
+      {
+        continue;
+      }
+
       // 只取线数在0~N_SCANS内并且回波次序(tag标签bit5和bit4)为0或者1的点云
-      if ((msg->points[i].line < N_SCANS) && ((msg->points[i].tag & 0x30) == 0x10 || (msg->points[i].tag & 0x30) == 0x00))
+      if ((pt.line < N_SCANS) && ((pt.tag & 0x30) == 0x10 || (pt.tag & 0x30) == 0x00))
       {
         valid_num++; // 满足回波序列01和00的计数有效的点数
         // 等间隔降采样,选取降采样的点
         if (valid_num % point_filter_num == 0)
         {
-          pl_full[i].x = msg->points[i].x;                                    // 点的x轴坐标
-          pl_full[i].y = msg->points[i].y;                                    // 点的y轴坐标
-          pl_full[i].z = msg->points[i].z;                                    // 点的z轴坐标
-          pl_full[i].intensity = msg->points[i].reflectivity;                 // 点的强度
-          pl_full[i].curvature = msg->points[i].offset_time / float(1000000); // 使用曲率作为每个激光点的时间？
+          pl_full[i].x = pt.x;                                    // 点的x轴坐标
+          pl_full[i].y = pt.y;                                    // 点的y轴坐标
+          pl_full[i].z = pt.z;                                    // 点的z轴坐标
+          pl_full[i].intensity = pt.reflectivity;                 // 点的强度
+          pl_full[i].curvature = pt.offset_time / float(1000000); // 使用曲率作为每个激光点的时间？
 
           // 间距太小不利于特征提取,只有当当前点和上一点的间距>1e-7,并且在最小距离阈值之外,才认为是有用点,加入到pl_surf队列中
-          if ((abs(pl_full[i].x - pl_full[i - 1].x) > 1e-7) || (abs(pl_full[i].y - pl_full[i - 1].y) > 1e-7) || (abs(pl_full[i].z - pl_full[i - 1].z) > 1e-7) && (pl_full[i].x * pl_full[i].x + pl_full[i].y * pl_full[i].y + pl_full[i].z * pl_full[i].z > (blind * blind)))
+          if (((abs(pl_full[i].x - pl_full[i - 1].x) > 1e-7) ||
+               (abs(pl_full[i].y - pl_full[i - 1].y) > 1e-7) ||
+               (abs(pl_full[i].z - pl_full[i - 1].z) > 1e-7)) &&
+              (pl_full[i].x * pl_full[i].x + pl_full[i].y * pl_full[i].y + pl_full[i].z * pl_full[i].z > (blind * blind)))
           {
             pl_surf.push_back(pl_full[i]); // 将当前点加入到对应line的pl_fuff队列中
           }
