@@ -1,85 +1,87 @@
-common:
-    lid_topic:  "/livox/lidar"
-    imu_topic:  "/livox/imu"
-    camera_topic: "/usb_cam/image_raw"
-    time_sync_en: false
+laserMapping:
+    ros__parameters:
+        common:
+            lid_topic:  "/livox/lidar"
+            imu_topic:  "/livox/imu"
+            camera_topic: "/usb_cam/image_raw"
+            time_sync_en: false
 
-    rootDir: "/tmp/fast_lio_sam_mid360/"
-    savePCD: true
-    savePCDDirectory: "PCDs/"
-    saveSCD: true
-    saveSCDDirectory: "SCDs/"
-    saveLOG: true
-    saveLOGDirectory: "LOG/"
-    map_save_en: true
-    pcd_save_interval: 1
+            rootDir: "/root/ros2_ws/src/better_fastlio2_ros2/data/"
+            savePCD: true
+            savePCDDirectory: "PCDs/"
+            saveSCD: true
+            saveSCDDirectory: "SCDs/"
+            saveLOG: true
+            saveLOGDirectory: "LOG/"
+            map_save_en: true
+            pcd_save_interval: 1
 
-preprocess:
-    lidar_type: 1
-    livox_type: 1
-    scan_line: 4
-    blind: 0.5
-    feature_enabled: 0
-    point_filter_num: 3
-    scan_rate: 10
-    time_unit: 1
+        preprocess:
+            lidar_type: 1
+            livox_type: 1
+            scan_line: 4
+            blind: 0.5
+            feature_enabled: 0
+            point_filter_num: 3
+            scan_rate: 10
+            time_unit: 1
 
-camera:
-    camera_en: false
-    camera_external: [ 0.000000, -1.000000, 0.000000, 0.000000,
-                       0.000000, 0.000000, -1.000000, 0.300000,
-                       1.000000, 0.000000, 0.000000, 0.000000,
-                       0.000000, 0.000000, 0.000000, 1.000000]
-    camera_internal: [516.235840, 0.000000, 641.125888, 0.000000,
-                      0.000000, 533.185608, 338.725370, 0.000000,
-                      0.000000, 0.000000, 1.000000, 0.000000]
+        camera:
+            camera_en: false
+            camera_external: [ 0.000000, -1.000000, 0.000000, 0.000000,
+                               0.000000, 0.000000, -1.000000, 0.300000,
+                               1.000000, 0.000000, 0.000000, 0.000000,
+                               0.000000, 0.000000, 0.000000, 1.000000]
+            camera_internal: [516.235840, 0.000000, 641.125888, 0.000000,
+                              0.000000, 533.185608, 338.725370, 0.000000,
+                              0.000000, 0.000000, 1.000000, 0.000000]
 
-mapping:
-    acc_cov: 0.1
-    gyr_cov: 0.1
-    b_acc_cov: 0.0001
-    b_gyr_cov: 0.0001
-    fov_degree: 360
-    det_range: 100.0
-    cube_len: 1000
-    extrinsic_est_en: true
-    mappingSurfLeafSize: 0.2
-    keyframeAddingDistThreshold: 1.0
-    keyframeAddingAngleThreshold: 0.2
-    extrinsic_T: [ 0.0, 0.0, 0.0 ]
-    extrinsic_R: [ 1, 0, 0,
-                   0, 1, 0,
-                   0, 0, 1 ]
+        mapping:
+            acc_cov: 0.1
+            gyr_cov: 0.1
+            b_acc_cov: 0.0001
+            b_gyr_cov: 0.0001
+            fov_degree: 360.0
+            det_range: 100.0
+            cube_len: 1000.0
+            extrinsic_est_en: true
+            mappingSurfLeafSize: 0.2
+            keyframeAddingDistThreshold: 1.0
+            keyframeAddingAngleThreshold: 0.2
+            extrinsic_T: [ 0.0, 0.0, 0.0 ]
+            extrinsic_R: [ 1., 0., 0.,
+                           0., 1., 0.,
+                           0., 0., 1. ]
 
-ikdtree:
-    max_iteration: 4
-    recontructKdTree: true
-    kd_step: 40
-    filter_size_map_min: 0.2
+        ikdtree:
+            max_iteration: 4
+            recontructKdTree: true
+            kd_step: 40
+            filter_size_map_min: 0.2
 
-loop:
-    loopClosureEnableFlag: false
-    loopClosureFrequency: 1.0
-    historyKeyframeSearchRadius: 10.0
-    historyKeyframeSearchTimeDiff: 30.0
-    historyKeyframeSearchNum: 1
-    historyKeyframeFitnessScore: 0.2
+        loop:
+            loopClosureEnableFlag: false
+            loopClosureFrequency: 1.0
+            historyKeyframeSearchRadius: 10.0
+            historyKeyframeSearchTimeDiff: 30.0
+            historyKeyframeSearchNum: 1
+            historyKeyframeFitnessScore: 0.2
 
-segment:
-    ground_en: false
-    tollerance_en: false
-    sensor_height: 1.5
-    z_tollerance: 2.0
-    rotation_tollerance: 0.2
+        segment:
+            ground_en: false
+            tollerance_en: false
+            sensor_height: 1.5
+            z_tollerance: 2.0
+            rotation_tollerance: 0.2
 
-publish:
-    path_en: true
-    scan_publish_en: true
-    dense_publish_en: false
-    scan_bodyframe_pub_en: true
+        publish:
+            path_en: true
+            scan_publish_en: true
+            dense_publish_en: false
+            scan_bodyframe_pub_en: true
 
-visualization:
-    globalMapVisualizationSearchRadius: 10.0
-    globalMapVisualizationPoseDensity: 1
-    globalMapVisualizationLeafSize: 0.2
-    visulize_IkdtreeMap: true
+        visualization:
+            globalMapVisualizationSearchRadius: 10.0
+            globalMapVisualizationPoseDensity: 1.0
+            globalMapVisualizationLeafSize: 0.2
+            visulize_IkdtreeMap: true
