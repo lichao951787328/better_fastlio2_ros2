@@ -63,7 +63,7 @@ find_package(PCL REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(GeographicLib REQUIRED)
 # Use ROS2 version of GTSAM
-find_package(GTSAM REQUIRED PATHS /opt/ros/jazzy/lib/cmake/GTSAM NO_DEFAULT_PATH)
+find_package(GTSAM REQUIRED PATHS /opt/ros/humble/lib/cmake/GTSAM NO_DEFAULT_PATH)
 
 # Generate messages and services
 rosidl_generate_interfaces(${PROJECT_NAME}
@@ -83,8 +83,8 @@ include_directories(
   ${GTSAM_INCLUDE_DIR}
   ${OpenCV_INCLUDE_DIRS}
   ${GeographicLib_INCLUDE_DIRS}
-  /opt/ros/jazzy/include
-  /opt/ros/jazzy/include/gtsam
+  /opt/ros/humble/include
+  /opt/ros/humble/include/gtsam
 )
 
 # Set ROS2 dependencies

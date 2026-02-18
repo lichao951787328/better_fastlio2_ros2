@@ -385,7 +385,7 @@ public:
         KDtree kdtree(Y);
         /// Buffers
         MatrixNX Q = MatrixNX::Zero(N, X.cols());
-        FRICPTypes::VectorX W_weights = FRICPTypes::VectorX::Zero(X.cols());
+        FRICPTypes::VectorX W = FRICPTypes::VectorX::Zero(X.cols());
         AffineNd T;
         if (par.use_init) T.matrix() = par.init_trans;
         else T = AffineNd::Identity();
@@ -423,7 +423,7 @@ public:
         for (int i = 0; i<nPoints; ++i) {
             VectorN cur_p = T * X.col(i);
             Q.col(i) = Y.col(kdtree.closest(cur_p.data()));
-            W_weights[i] = (cur_p - Q.col(i)).norm();
+            W[i] = (cur_p - Q.col(i)).norm();
         }
         if(par.f == ICP::WELSCH)
         {
@@ -463,7 +463,7 @@ public:
                         for (int i = 0; i<nPoints; ++i) {
                             VectorN cur_p = SVD_T * X.col(i);
                             Q.col(i) = Y.col(kdtree.closest(cur_p.data()));
-                            W_weights[i] = (cur_p - Q.col(i)).norm();
+                            W[i] = (cur_p - Q.col(i)).norm();
                         }
                         last_energy = get_energy(par.f, W, nu1);
                     }
@@ -505,7 +505,7 @@ public:
                 for (int i = 0; i<nPoints; ++i) {
                     VectorN cur_p = T * X.col(i) ;
                     Q.col(i) = Y.col(kdtree.closest(cur_p.data()));
-                    W_weights[i] = (cur_p - Q.col(i)).norm();
+                    W[i] = (cur_p - Q.col(i)).norm();
                 }
                 /// Stopping criteria
                 double stop2 = (T.matrix() - To2).norm();
@@ -614,7 +614,7 @@ public:
             int id = kdtree.closest(X.col(i).data());
             Qp.col(i) = Y.col(id);
             Qn.col(i) = norm_y.col(id);
-            W_weights[i] = std::abs(Qn.col(i).transpose() * (X.col(i) - Qp.col(i)));
+            W[i] = std::abs(Qn.col(i).transpose() * (X.col(i) - Qp.col(i)));
         }
         double end_init = omp_get_wtime();
         double init_time = end_init - begin_init;
@@ -653,7 +653,7 @@ public:
                     int id = kdtree.closest(X.col(i).data());
                     Qp.col(i) = Y.col(id);
                     Qn.col(i) = norm_y.col(id);
-                    W_weights[i] = std::abs(Qn.col(i).transpose() * (X.col(i) - Qp.col(i)));
+                    W[i] = std::abs(Qn.col(i).transpose() * (X.col(i) - Qp.col(i)));
                 }
 
                 if(par.print_energy)
@@ -765,7 +765,7 @@ public:
             int id = kdtree.closest(X.col(i).data());
             Qp.col(i) = Y.col(id);
             Qn.col(i) = norm_y.col(id);
-            W_weights[i] = std::abs(Qn.col(i).transpose() * (X.col(i) - Qp.col(i)));
+            W[i] = std::abs(Qn.col(i).transpose() * (X.col(i) - Qp.col(i)));
         }
 
         if(par.f == ICP::WELSCH)
@@ -819,7 +819,7 @@ public:
                             int id = kdtree.closest(X.col(i).data());
                             Qp.col(i) = Y.col(id);
                             Qn.col(i) = norm_y.col(id);
-                            W_weights[i] = std::abs(Qn.col(i).transpose() * (X.col(i) - Qp.col(i)));
+                            W[i] = std::abs(Qn.col(i).transpose() * (X.col(i) - Qp.col(i)));
                         }
                         double test_energy = get_energy(par.f, W, nu1);
                        if(test_energy < energy)
@@ -879,7 +879,7 @@ public:
                     int id = kdtree.closest(X.col(i).data());
                     Qp.col(i) = Y.col(id);
                     Qn.col(i) = norm_y.col(id);
-                    W_weights[i] = std::abs(Qn.col(i).transpose() * (X.col(i) - Qp.col(i)));
+                    W[i] = std::abs(Qn.col(i).transpose() * (X.col(i) - Qp.col(i)));
                 }
 
                 /// Stopping criteria

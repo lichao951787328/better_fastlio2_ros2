@@ -12,6 +12,7 @@
 
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
+#include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
 #include <sensor_msgs/image_encodings.hpp>
 
@@ -22,6 +23,7 @@
 #include <visualization_msgs/msg/marker_array.hpp>
 
 #include <geometry_msgs/msg/vector3.hpp>
+#include <geometry_msgs/msg/transform_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 
 // eigen
@@ -37,7 +39,7 @@
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
-#include <cv_bridge/cv_bridge.hpp>
+#include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.hpp>
 
 
@@ -440,7 +442,7 @@ inline T deg2rad(T degrees) // deg2rad
 template<typename T>
 double ROS_TIME(T msg)
 {
-    return msg->header.stamp.toSec();
+    return static_cast<double>(msg->header.stamp.sec) + static_cast<double>(msg->header.stamp.nanosec) * 1e-9;
 }
 
 template<typename T>

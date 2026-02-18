@@ -229,3 +229,40 @@ rclcpp::spin_some(node);
 
 ---
 生成时间: 2026年2月5日
+
+---
+
+## 2026年2月18日更新
+
+### 新完成内容
+
+- 修复 `src/online_relocalization.cpp`
+  - `rclcpp::init(argc, argv)`
+  - 统一 ROS2 node 生命周期
+  - `rclcpp::spin(node)` 替代 ROS1 spin
+
+- 修复 `src/laserMapping.cpp`
+  - 恢复被破坏的参数读取区（`declare_parameter`）
+  - 修复 `node` 全局指针赋值
+  - 修复订阅器作用域导致的提前析构
+  - TF 广播改为 `tf2_ros::TransformBroadcaster`
+  - 全部 `toSec/fromSec` 改为 ROS2 兼容写法
+  - 服务请求/响应类型改为 ROS2 `fast_lio_sam::srv::*`
+
+- 修复公共头文件
+  - `include/common_lib.h` 增加 `sensor_msgs/msg/image.hpp` 与 `geometry_msgs/msg/transform_stamped.hpp`
+  - `ROS_TIME` 改为 ROS2 stamp 字段计算
+
+- 修复工具代码中的 ROS1 头与日志
+  - `include/teaser-toolkit/fpfh_teaser.hpp/.cpp`
+
+### 当前状态
+
+- 代码层面主要 ROS1 API 遗留已清理（源码中剩余仅注释）。
+- `get_errors` 对本次修改文件未报告语法错误。
+
+### 构建阻塞
+
+- 当前容器构建失败原因为环境缺依赖：
+  - `ModuleNotFoundError: No module named 'ament_package'`
+- 需先补齐 Python `ament_package` 后才能继续完整编译验证。

@@ -138,3 +138,44 @@ ros2 run fast_lio_sam fastlio_sam_mapping --ros-args --params-file config/hap_li
 ---
 生成时间：2026年2月5日
 转换状态：接近完成，需要最后的语法修复
+
+---
+
+## 2026年2月18日补充进展
+
+### ✅ 本次已完成
+
+1. `src/online_relocalization.cpp`
+   - 修复 `rclcpp::init` 调用
+   - 创建并传入 ROS2 node 到 `pose_estimator`
+   - `ros::spin()` 替换为 `rclcpp::spin(node)`
+   - 增加线程 `join`，避免退出时悬空线程
+
+2. `src/laserMapping.cpp`
+   - 修复主函数中被错误脚本破坏的参数声明区块
+   - 全部恢复为合法 ROS2 `declare_parameter` 写法
+   - 修复 `node` 未赋值问题（回调日志依赖）
+   - 修复订阅器生命周期（避免局部变量提前析构）
+   - ROS1 `tf::TransformBroadcaster` 改为 ROS2 `tf2_ros::TransformBroadcaster`
+   - `toSec()/fromSec()` 全部替换为 ROS2 时间转换实现
+   - 旧服务类型 `save_mapRequest/save_poseRequest` 改为 ROS2 `srv::SaveMap/SavePose`
+
+3. `include/common_lib.h`
+   - 增加 ROS2 `Image`、`TransformStamped` 头文件
+   - 修复 `ROS_TIME()` 内部 `toSec()` 为 ROS2 时间字段计算
+
+4. `include/teaser-toolkit/fpfh_teaser.*`
+   - 去除 `#include <ros/ros.h>`
+   - `ROS_INFO` 替换为 `RCLCPP_INFO`
+
+### ⚠️ 当前阻塞（环境）
+
+- 当前容器执行 `colcon build --packages-select fast_lio_sam` 时失败，错误为：
+  - `ModuleNotFoundError: No module named 'ament_package'`
+- 属于构建环境缺失 Python 包，不是源码语法错误。
+
+### ▶️ 下一步
+
+1. 在容器安装 `ament_package`（与当前 ROS 发行版对应）
+2. 重新执行 `colcon build --packages-select fast_lio_sam`
+3. 根据真实编译输出继续收敛剩余问题（若有）

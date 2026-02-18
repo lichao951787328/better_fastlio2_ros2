@@ -1,9 +1,11 @@
 #include "fpfh_teaser.hpp"
 
+static const rclcpp::Logger LOGGER = rclcpp::get_logger("fpfh_teaser");
+
 fpfh_teaser::fpfh_teaser(const pcl::PointCloud<PointType>::Ptr& source, const pcl::PointCloud<PointType>::Ptr& target){
     allocateMemory();
 
-    ROS_INFO("fpfh_teaser initialized ...");
+    RCLCPP_INFO(LOGGER, "fpfh_teaser initialized ...");
     std::cout << " NORMAL_ESTIMATION_RADIUS " << NORMAL_ESTIMATION_RADIUS << "\n"
                        << " MATCH_DISTANCE " << MATCH_DISTANCE << "\n"
                        << " FPFH_SEARCH_RADIUS " << FPFH_SEARCH_RADIUS << std::endl;
@@ -102,7 +104,7 @@ std::pair<double, Eigen::Isometry3f> fpfh_teaser::match(){
         source_fpfh.push_back(fpfh_source->at(i));
     }
 
-    ROS_INFO("Find Correspondences ... ");
+    RCLCPP_INFO(LOGGER, "Find Correspondences ... ");
     teaser::Matcher matcher;
     auto correspondences = matcher.calculateCorrespondences(
         source_teaser,
@@ -115,7 +117,7 @@ std::pair<double, Eigen::Isometry3f> fpfh_teaser::match(){
         TUPLE_SCALE
     );
 
-    ROS_INFO("Run Teaser++ ... ");
+    RCLCPP_INFO(LOGGER, "Run Teaser++ ... ");
     teaser::RobustRegistrationSolver::Params params;
     params.noise_bound = NOISE_BOUND;
     params.cbar2 = CBAR2;
